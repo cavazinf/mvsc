@@ -1,0 +1,48 @@
+Rust
+// Define the PortfolioUpdated event (optional bonus step)
+struct PortfolioUpdated has copy, drop {
+    name: String,
+    owner: address,
+    new_portfolio: String,
+}
+
+// Create the update_portfolio function
+public entry fun update_portfolio(devhub: &mut DevHub, new_portfolio: vector<u8>, id: u64, ctx: &mut TxContext) {
+    let user_card = object_table::borrow_mut(&mut devhub.cards, id);
+    assert!(tx_context::sender(ctx) == user_card.owner, NOT_THE_OWNER);
+
+    // Update the portfolio field
+    let old_value = option::swap_or_fill(&mut user_card.portfolio, string::utf8(new_portfolio));
+
+    // Emit the PortfolioUpdated event (optional bonus step)
+    event::emit(
+        PortfolioUpdated {
+            name: user_card.name,
+            owner: user_card.owner,
+            new_portfolio: string::utf8(new_portfolio),
+        }
+    );
+
+    _ = old_value;
+}
+Use o código com cuidado. Saiba mais
+Explanation:
+
+Event Definition (Optional):
+If you're completing the bonus step, define the PortfolioUpdated event with the specified fields.
+Function Creation:
+Define the update_portfolio function with the required arguments:
+devhub: Reference to the DevHub contract.
+new_portfolio: The new portfolio data as a vector of bytes.
+id: The ID of the card to update.
+ctx: The transaction context.
+Borrow Card:
+Borrow a mutable reference to the card with the specified ID using object_table::borrow_mut.
+Ownership Check:
+Assert that the transaction sender is the owner of the card using tx_context::sender and the NOT_THE_OWNER error message.
+Update Portfolio:
+Update the portfolio field of the card using option::swap_or_fill.
+Emit Event (Optional):
+If you defined the PortfolioUpdated event, emit it using event::emit, passing the relevant data.
+Unused Value:
+Discard the old value of the portfolio using _ = old_value.
