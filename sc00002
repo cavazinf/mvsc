@@ -1,75 +1,138 @@
-Congratulations on finishing Move on Sui Bootcamp content. You have learned to create smart contracts on one of most innovative blockchain that ever existed! 
+Rust
+use move_lang::{
+    account_id::AccountId,
+    builtins::{self, event::Event},
+    impl_contract,
+    lang_items::{Struct, Type},
+    value::MoveValue,
+};
 
-You have learned some particularly important concepts, like Move on Sui objects, entry functions, event and more. Now, it is time to demonstrate what you have learned with a final project.
+#[derive(Struct)]
+struct Token {
+    id: UID,
+    name: String,
+    description: String,
+    owner: AccountId,
+}
 
+impl Token {
+    pub fn new(name: String, description: String) -> Self {
+        Self {
+            id: UID::new(),
+            name,
+            description,
+            owner: AccountId::default(),
+        }
+    }
+}
 
+#[derive(Type)]
+struct TokenId(UID);
 
-Step 1
+#[derive(Type)]
+struct TokenOwner(AccountId);
 
-As the first step, you will produce an idea. You have seen how easy it is to create assets on Move on Sui and how you can manipulate thess objects, as well as you learned how to use storage in Move on Sui using object_tables.
+#[impl_contract]
+pub struct TokenContract {
+    tokens: object_table::ObjectTable<Token>,
+}
 
-Constraint For the Idea:
+impl TokenContract {
+    #[entry]
+    pub fn init(_ctx: &mut TxContext) -> Self {
+        Self {
+            tokens: object_table::ObjectTable::new(),
+        }
+    }
 
-In your smart contract you need to use the following features (you are not restricted to these features, but you need at least these features):
+    #[entry]
+    pub fn mint(
+        &mut self,
+        ctx: &mut TxContext,
+        name: String,
+        description: String,
+    ) -> TokenId {
+        let token = Token::new(name, description);
+        self.tokens.insert(token.id, token);
 
-You need to make use of Move on Sui objects (Remember Move on Sui objects are the structs that have the key ability and have the id: UID field as its first field).
-You need to make use of events.
-You need to have an init function.
-You need to implement a test.
+        Event::emit(
+            ctx,
+            TokenMinted {
+                id: token.id,
+                name,
+                description,
+                owner: ctx.sender(),
+            },
+        );
 
+        TokenId(token.id)
+    }
 
-Step 2 
+    #[entry]
+    pub fn transfer(
+        &mut self,
+        ctx: &mut TxContext,
+        token_id: TokenId,
+        new_owner: AccountId,
+    ) {
+        let token = self.tokens.get_mut(token_id).unwrap();
+        assert!(token.owner == ctx.sender(), NOT_THE_OWNER);
+        token.owner = new_owner;
 
-In the second step you are going to develop your smart contract. You can use any IDE you want but Visual Studio Code is highly recommended because of its Move on Sui language extension.
+        Event::emit(
+            ctx,
+            TokenTransferred {
+                id: token.id,
+                owner: token.owner,
+                new_owner,
+            },
+        );
+    }
+}
 
+struct TokenMinted {
+    id: TokenId,
+    name: String,
+    description: String,
+    owner: AccountId,
+}
 
+struct TokenTransferred {
+    id: TokenId,
+    owner: AccountId,
+    new_owner: AccountId,
+}
+Use o código com cuidado. Saiba mais
+Este contrato inteligente define um tipo de objeto chamado Token, que representa um token NFT. Cada token tem um identificador único, um nome, uma descrição e um proprietário.
 
-Step 3
+O contrato oferece duas entradas:
 
-In the third step, you will create a test for the smart contract. After the smart contract creation, the testing process can feel a little bit tedious. As you may know, testing is a very essential part of software development and when it comes to blockchain development it is even more important since we are working with real assets and tokens.
+mint(): Cria um novo token e o atribui ao remetente da transação.
+transfer(): Transfere a propriedade de um token para um novo proprietário.
+A entrada mint() emite um evento TokenMinted que registra a criação do novo token. A entrada transfer() emite um evento TokenTransferred que registra a transferência da propriedade do token.
 
+Aqui está um exemplo de como usar o contrato inteligente:
 
+Rust
+fn main() {
+    let contract_address =
+        "0x0000000000000000000000000000000000000001";
 
-Step 4
+    let sender = AccountId::new();
 
-Deploy your contract on the devnet. When you deploy your contract, don’t forget to save the object ids since you will need them later.
+    let name = "My NFT";
+    let description = "A beautiful NFT";
 
+    let token_id = {
+        let mut contract = TokenContract::new();
+        let token_id = contract.mint(sender.clone(), name.clone(), description.clone());
+        contract.destroy();
+        token_id
+    };
 
+    println!("Token ID: {}", token_id);
 
-Step 5 (Optional)
+    let new_owner = AccountId::new();
 
-This step is optional meaning you do not have to do this step, but if you do it can help you to understand Move on Sui and smart contract development better. In this step you will create a frontend for your smart contract, and you will connect your Move on Sui contract to your frontend.
-
-
-
-Step 6
-
-In this final step you will create a GitHub repository and upload your code. GitHub and git usage is essential for any smart contract developer. By creating a GitHub repository, you will not only have practice working with git technology but also you will have a project that you can display. 
-
-After creating a GitHub repository, you need to create a read.me file. A good read.me file will help others to understand your project better and it will also give you the skills for future usage.
-
-What Will Be on the Read.me File?
-
-The explanation of the project including the aim of the project.
-The devnet contract address.
-How to set up the project. In this part, you can also share the following link for Move on Sui setup: Install Sui to Build | Sui Docs
-How to run the project.
-How to test the project.
-Screenshot of the test results.
-You can access the sample read.me file via this link. Don’t forget to change the bootcamp name etc.
-After you finish your read.me file, share the repository link below (do not forget to make your repository public).
-
-Wow, 6 steps! Do not get intimidated by the number of steps. These steps are required from many developers to know. By completing these steps, you can show that you are a complete developer who can develop a smart contract, test it, develop a frontend (optional) and you will show that you can work with GitHub including the read.me file. This sounds like a blockchain developer to me!
-
-Also don’t forget you are not alone in the process! We are here to help you. If you are stuck, you can ask your questions on our Discord channel. Additionally, every developer is also a researcher, so we encourage you to first try to find your solution on your own but do not lose too much time and ask your questions if needed. Others may have similar troubles too!
-
-Down below you will find useful links that you can also use while you develop your project:
-
-Programming Objects Tutorial Series | Sui Docs
-Introductory Course to the Move on Sui Language | GitHub
-How to Use this Book - Move on Sui by Example
-Good luck and may the force be with you! 💫
-
-Note: To qualify for graduation, submit your project as open source rather than a closed project. This is better for the open culture of web3 but also allows us to evaluate your project and reach out to you for further career opportunities. 🔥
-
-At the same time, if there are features you want to add to your project, feel free to add them. 🚀
+    let _ = contract_address.transfer(token_id, new_owner);
+}
